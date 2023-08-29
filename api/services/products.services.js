@@ -1,10 +1,11 @@
 const { faker } = require('@faker-js/faker');
 const boom = require('@hapi/boom')
-const pool = require('../../libs/postgresPool')
+const sequelize = require('../../libs/sequelize');
+const { QueryTypes } = require('sequelize');
 
 class productsServices {
   constructor() {
-    this.pool = pool;
+
   }
 
   generate() {
@@ -26,11 +27,11 @@ class productsServices {
 
   async index(res) {
     try {
-      const products = await this.pool.query(`
+      const products = await sequelize.query(`
                                               SELECT * FROM products
                                             `);
       res.status(200).json({
-        products: products.rows
+        products: products
       })
     } catch(error) {
       console.log('ERROR AL TRAER LOS PRODUCTOS ',error)
@@ -40,10 +41,15 @@ class productsServices {
   async show(req, res, next) {
     const { id } = req.params;
     try {
-      const product = await this.pool.query(`
-                                            select * from products
-                                                      where id = $1
-                                          `,[id])
+      const product = await sequelize.query(`
+                                              select * from products
+                                                        where id = :id
+                                            `,
+                                            {
+                                              replacements: { id:id },
+                                              types: QueryTypes.SELECT
+                                            }
+                                          )
       if (!product) {
         res.status(404).json({
           message: 'producto invalido!',
@@ -51,7 +57,7 @@ class productsServices {
       } else if(product.isBlock){
         throw boom.conflict("product not available")
       } else{
-        res.status(200).json(product.rows);
+        res.status(200).json(product);
       }
     } catch (error) {
       next(error)
@@ -65,7 +71,7 @@ class productsServices {
     const sql = `insert into products (name, price, img)
                           values ($1, $2, $3)`;
     try {
-      const product = await this.pool.query(sql,[request.name, request.price, request.img])
+      const product = await sequelize.query(sql,[request.name, request.price, request.img])
       res.status(201).json({
         message: 'Created',
         data: product,
