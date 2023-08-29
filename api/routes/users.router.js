@@ -21,11 +21,25 @@ router.post(
   }
 );
 
+router.patch(
+  '/update/:id',
+  async (req, res, next) => {
+    await service.update(req, res, next)
+  }
+)
+
 router.get(
   '/',
   async (req, res, next) => {
     await service.index(req, res, next)
   }
 );
+
+router.delete(
+  '/delete/:id',
+  async (req, res, next) => {
+    await service.destroy(req, res, next)
+  }
+)
 
 module.exports = router;

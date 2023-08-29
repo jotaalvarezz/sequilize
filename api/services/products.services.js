@@ -1,6 +1,6 @@
 const { faker } = require('@faker-js/faker');
 const boom = require('@hapi/boom')
-const sequelize = require('../../libs/sequelize');
+const { models, sequelize } = require('../../libs/sequelize');
 const { QueryTypes } = require('sequelize');
 
 class productsServices {
@@ -27,9 +27,7 @@ class productsServices {
 
   async index(res) {
     try {
-      const products = await sequelize.query(`
-                                              SELECT * FROM products
-                                            `);
+      const products = await models.Product.findAll()
       res.status(200).json({
         products: products
       })
@@ -41,15 +39,7 @@ class productsServices {
   async show(req, res, next) {
     const { id } = req.params;
     try {
-      const product = await sequelize.query(`
-                                              select * from products
-                                                        where id = :id
-                                            `,
-                                            {
-                                              replacements: { id:id },
-                                              types: QueryTypes.SELECT
-                                            }
-                                          )
+      const product = await models.Product.findByPk(id)
       if (!product) {
         res.status(404).json({
           message: 'producto invalido!',
@@ -66,12 +56,14 @@ class productsServices {
   }
 
   async store(req, res) {
-    const request = req.body;
-    //const size = this.products.length;
-    const sql = `insert into products (name, price, img)
-                          values ($1, $2, $3)`;
+    const body = req.body;
     try {
-      const product = await sequelize.query(sql,[request.name, request.price, request.img])
+      const product = await models.Product.create(
+        {
+          name: body.name,
+          price:body.price,
+        }
+      )
       res.status(201).json({
         message: 'Created',
         data: product,
@@ -84,18 +76,20 @@ class productsServices {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const request = req.body
-      request.id = parseInt(id);
-      let index = this.products.findIndex((d) => d.id == id);
-      if(index === -1){
-        //throw new error("producto not found")
-        throw boom.notFound("producto not found")
-      }
-      this.products[index] = request;
+      const body = req.body
+      const product = await models.Product.update(
+        {
+          price: body.price
+        },
+        {
+          where:{
+            id:id
+          }
+        }
+      )
       res.status(200).json({
         message: 'Updated',
-        data: index,
-        id,
+        data: product
       });
     } catch (error) {
       next(error)

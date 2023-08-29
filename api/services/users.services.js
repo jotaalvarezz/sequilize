@@ -1,6 +1,7 @@
 const boom = require('@hapi/boom');
 const sequelize = require('../../libs/sequelize');
 const { QueryTypes } = require('sequelize');
+const { models } = require('../../libs/sequelize')
 
 class usersServices {
   constructor() {}
@@ -14,13 +15,7 @@ class usersServices {
                                           password integer
                                       );`); */
       //return query
-      let query = await sequelize.query(`
-                                select * from users where id = ?
-                              `,
-                              {
-                                replacements: [parseInt(id)],
-                                type: QueryTypes.SELECT
-                              })
+      let query = await models.User.findByPk(id)
       res.json({
         id: id,
         query: query,
@@ -46,23 +41,75 @@ class usersServices {
   async store(req, res, next) {
     const body = req.body;
     try {
-      const user = await sequelize.query(`
+      /* const user = await sequelize.query(`
                                           insert into
-                                            users (name, password)
-                                            values (:name, :password);`,
+                                            users (name, email, password, created_at)
+                                            values (:name, :email, :password, :created_at);`,
                                           {
                                             replacements:{
                                                             name: body.name,
-                                                            password: body.password
+                                                            password: body.password,
+                                                            email: body.email,
+                                                            created_at: body.created_at
                                                           },
                                             type: QueryTypes.INSERT
                                           }
-                                        )
+                                        ) */
+      const user = await models.User.create({
+                                              name:body.name,
+                                              email:body.email,
+                                              password:body.password
+                                            })
       res.json({
         objeto: user,
       });
     } catch (error) {
       console.log('no se pudo insertar el user ', error);
+    }
+  }
+
+  async update(req, res, next){
+    const { id } = req.params;
+    const body = req.body
+    try {
+      const user = await models.User.update(
+        {
+          name:body.name
+        },
+        {
+          where:{
+            id:id
+          }
+        }
+      )
+    res.json(
+      {
+        data:user
+      }
+    )
+    } catch(error) {
+      console.error(error)
+    }
+  }
+
+  async destroy(req, res, next){
+    const { id } = req.params
+    try {
+      const user = await models.User.destroy(
+        {
+          where:{
+            id:id
+          }
+        }
+      )
+
+      res.json(
+        {
+          data:user
+        }
+      )
+    } catch(error) {
+      console.log(error)
     }
   }
 }
